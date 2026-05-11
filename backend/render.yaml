@@ -1,0 +1,93 @@
+services:
+  - type: web
+    name: betooth-backend
+    runtime: node
+    repo: https://github.com/betosouzabb-maker/Betooth
+    rootDir: backend
+    buildCommand: npm ci && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    preDeployCommand: npm run migrate:deploy
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: API_PREFIX
+        value: /api/v1
+      - key: APP_NAME
+        value: Betooth Backend
+      - key: APP_URL
+        value: https://betooth-backend.onrender.com
+      - key: LOG_LEVEL
+        value: info
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: betooth-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: betooth-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: betooth-redis
+          type: keyvalue
+          property: connectionString
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES_IN
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES_IN
+        value: 7d
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: AUTH_RATE_LIMIT_WINDOW_MS
+        value: "60000"
+      - key: AUTH_RATE_LIMIT_MAX_REQUESTS
+        value: "5"
+      - key: S3_REGION
+        value: sa-east-1
+      - key: S3_BUCKET
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: QUEUE_PREFIX
+        value: betooth
+      - key: ADMIN_MASTER_PASSWORD
+        generateValue: true
+      - key: MP_ACCESS_TOKEN
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+      - key: MP_PLAN_PRICE_CENTS
+        value: "999"
+      - key: MP_PLAN_LABEL
+        value: Betooth VIP Mensal
+      - key: FREE_MONTHLY_DOWNLOAD_LIMIT
+        value: "5"
+      - key: VIP_CACHE_TTL_SECONDS
+        value: "300"
+
+  - type: keyvalue
+    name: betooth-redis
+    plan: free
+    maxmemoryPolicy: noeviction
+
+databases:
+  - name: betooth-db
+    databaseName: betooth
+    user: betooth
+    plan: free
