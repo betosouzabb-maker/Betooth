@@ -10,6 +10,7 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
     "seed": "prisma db seed",
     "prisma:generate": "prisma generate",
     "test": "node -e \"console.log('No tests configured yet')\"",
