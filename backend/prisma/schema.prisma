@@ -1,0 +1,700 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  USER
+  ARTIST
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  PENDING
+  SUSPENDED
+  DELETED
+}
+
+enum SessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+  DESKTOP
+  UNKNOWN
+}
+
+enum ArtistType {
+  SOLO
+  BAND
+  PRODUCER
+  DJ
+  OTHER
+}
+
+enum TrackStatus {
+  DRAFT
+  PROCESSING
+  PUBLISHED
+  ARCHIVED
+  BLOCKED
+}
+
+enum UploadStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REJECTED
+}
+
+enum DownloadStatus {
+  REQUESTED
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  EXPIRED
+}
+
+enum PlaylistVisibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum FavoriteType {
+  TRACK
+  ALBUM
+  ARTIST
+  PLAYLIST
+}
+
+enum ReportReason {
+  COPYRIGHT
+  ABUSE
+  SPAM
+  METADATA
+  OTHER
+}
+
+enum ReportStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+enum AdminActionType {
+  USER_SUSPENDED
+  USER_RESTORED
+  TRACK_BLOCKED
+  TRACK_PUBLISHED
+  REPORT_RESOLVED
+  METADATA_UPDATED
+  OTHER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+  TRIAL
+  PAST_DUE
+}
+
+enum SubscriptionPlan {
+  MONTHLY
+}
+
+enum PaymentGateway {
+  MERCADO_PAGO
+  STRIPE
+}
+
+enum PaymentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  REFUNDED
+  CANCELLED
+  IN_PROCESS
+}
+
+enum CouponType {
+  FREE_VIP_DAYS
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum SyncStatus {
+  IDLE
+  PENDING
+  RUNNING
+  FAILED
+  COMPLETED
+}
+
+enum ChangeOperation {
+  CREATED
+  UPDATED
+  DELETED
+}
+
+enum NotificationType {
+  SYSTEM
+  RELEASE
+  REPORT
+  PLAYLIST
+  SYNC
+  ACCOUNT
+}
+
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+model User {
+  id                  String               @id @default(cuid())
+  email               String               @unique
+  username            String?              @unique
+  displayName         String
+  passwordHash        String
+  birthDate           DateTime?
+  phone               String?
+  avatarUrl           String?
+  bio                 String?
+  role                UserRole             @default(USER)
+  status              UserStatus           @default(PENDING)
+  isEmailVerified     Boolean              @default(false)
+  lastLoginAt         DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
+  sessions            UserSession[]
+  devices             Device[]
+  uploads             Upload[]
+  downloads           Download[]
+  libraryItems        UserLibrary[]
+  playlists           Playlist[]
+  favorites           Favorite[]
+  playHistory         PlayHistory[]
+  searchHistory       SearchHistory[]
+  reports             Report[]             @relation("ReportReporter")
+  assignedReports     Report[]             @relation("ReportAssignee")
+  notifications       Notification[]
+  passwordResetTokens PasswordResetToken[]
+  syncStates          SyncState[]
+  entityChanges       EntityChange[]
+  adminActions        AdminAction[]        @relation("AdminActor")
+  adminActionTargets  AdminAction[]        @relation("AdminTargetUser")
+  subscription        Subscription?
+  payments            Payment[]
+  couponRedemptions   CouponRedemption[]
+  downloadQuotas      DownloadQuota[]
+}
+
+model UserSession {
+  id           String        @id @default(cuid())
+  userId       String
+  refreshToken String        @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  status       SessionStatus @default(ACTIVE)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model Device {
+  id              String         @id @default(cuid())
+  userId          String
+  deviceIdentifier String        @unique
+  name            String?
+  platform        DevicePlatform @default(UNKNOWN)
+  appVersion      String?
+  osVersion       String?
+  pushToken       String?
+  lastSeenAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  syncStates      SyncState[]
+
+  @@index([userId, platform])
+}
+
+model Artist {
+  id          String      @id @default(cuid())
+  name        String
+  slug        String      @unique
+  bio         String?
+  imageUrl    String?
+  countryCode String?
+  artistType  ArtistType  @default(SOLO)
+  isVerified  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  albums      Album[]
+  tracks      Track[]
+  favorites   Favorite[]
+
+  @@index([name])
+}
+
+model Album {
+  id            String      @id @default(cuid())
+  artistId      String
+  title         String
+  slug          String      @unique
+  coverUrl      String?
+  releaseDate   DateTime?
+  description   String?
+  totalTracks   Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  artist        Artist      @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  tracks        Track[]
+  favorites     Favorite[]  @relation("FavoriteAlbum")
+
+  @@index([artistId, releaseDate])
+  @@index([title])
+}
+
+model Genre {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tracks      Track[]
+}
+
+model Track {
+  id              String          @id @default(cuid())
+  artistId        String
+  albumId         String?
+  genreId         String?
+  title           String
+  slug            String          @unique
+  description     String?
+  coverUrl        String?
+  durationSeconds Int             @default(0)
+  bpm             Int?
+  keySignature    String?
+  isExplicit      Boolean         @default(false)
+  status          TrackStatus     @default(DRAFT)
+  releaseDate     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  artist          Artist          @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  album           Album?          @relation(fields: [albumId], references: [id], onDelete: SetNull)
+  genre           Genre?          @relation(fields: [genreId], references: [id], onDelete: SetNull)
+  versions        TrackVersion[]
+  tags            TrackTag[]
+  libraryEntries  UserLibrary[]
+  downloads       Download[]
+  playlistItems   PlaylistItem[]
+  favorites       Favorite[]      @relation("FavoriteTrack")
+  playHistory     PlayHistory[]
+  reports         Report[]
+  entityChanges   EntityChange[]
+
+  @@index([artistId, status])
+  @@index([albumId])
+  @@index([genreId])
+  @@index([title])
+}
+
+model TrackVersion {
+  id              String       @id @default(cuid())
+  trackId         String
+  versionName     String
+  audioUrl        String
+  fileSizeBytes   BigInt?
+  bitrateKbps     Int?
+  sampleRateHz    Int?
+  codec           String?
+  isLossless      Boolean      @default(false)
+  isPrimary       Boolean      @default(false)
+  uploadStatus    UploadStatus @default(PENDING)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  track           Track        @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, versionName])
+  @@index([trackId, isPrimary])
+  @@map("track_versions")
+}
+
+model TrackTag {
+  id        String   @id @default(cuid())
+  trackId   String
+  tag       String
+  createdAt DateTime @default(now())
+  track     Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([trackId, tag])
+  @@index([tag])
+  @@map("track_tags")
+}
+
+model UserLibrary {
+  id         String   @id @default(cuid())
+  userId     String
+  trackId    String
+  addedAt    DateTime @default(now())
+  source     String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track      Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, trackId])
+  @@index([userId, addedAt])
+  @@map("user_library")
+}
+
+model Download {
+  id             String         @id @default(cuid())
+  userId         String
+  trackId        String
+  deviceId       String?
+  status         DownloadStatus @default(REQUESTED)
+  quality        String?
+  requestedAt    DateTime       @default(now())
+  completedAt    DateTime?
+  expiresAt      DateTime?
+  failureReason  String?
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track          Track          @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([trackId, status])
+  @@map("downloads")
+}
+
+model Upload {
+  id             String       @id @default(cuid())
+  userId         String
+  trackId        String?
+  storageKey     String       @unique
+  originalName   String
+  mimeType       String
+  sizeBytes      BigInt
+  checksum       String?
+  status         UploadStatus @default(PENDING)
+  errorMessage   String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  completedAt    DateTime?
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@map("uploads")
+}
+
+model Playlist {
+  id            String              @id @default(cuid())
+  userId        String
+  title         String
+  slug          String              @unique
+  description   String?
+  coverUrl      String?
+  visibility    PlaylistVisibility  @default(PRIVATE)
+  isCollaborative Boolean           @default(false)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  user          User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items         PlaylistItem[]
+  favorites     Favorite[]          @relation("FavoritePlaylist")
+
+  @@index([userId, visibility])
+  @@index([title])
+}
+
+model PlaylistItem {
+  id          String   @id @default(cuid())
+  playlistId  String
+  trackId     String
+  addedById   String?
+  position    Int
+  addedAt     DateTime @default(now())
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  track       Track    @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, position])
+  @@index([playlistId, trackId])
+  @@map("playlist_items")
+}
+
+model Favorite {
+  id          String        @id @default(cuid())
+  userId      String
+  type        FavoriteType
+  trackId     String?
+  albumId     String?
+  artistId    String?
+  playlistId  String?
+  createdAt   DateTime      @default(now())
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track       Track?        @relation("FavoriteTrack", fields: [trackId], references: [id], onDelete: Cascade)
+  album       Album?        @relation("FavoriteAlbum", fields: [albumId], references: [id], onDelete: Cascade)
+  artist      Artist?       @relation(fields: [artistId], references: [id], onDelete: Cascade)
+  playlist    Playlist?     @relation("FavoritePlaylist", fields: [playlistId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@index([trackId])
+  @@index([albumId])
+  @@index([artistId])
+  @@index([playlistId])
+  @@map("favorites")
+}
+
+model PlayHistory {
+  id              String    @id @default(cuid())
+  userId          String
+  trackId         String
+  deviceId        String?
+  playedAt        DateTime  @default(now())
+  progressSeconds Int?
+  completed       Boolean   @default(false)
+  source          String?
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track           Track     @relation(fields: [trackId], references: [id], onDelete: Cascade)
+
+  @@index([userId, playedAt])
+  @@index([trackId, playedAt])
+  @@map("play_history")
+}
+
+model SearchHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  query       String
+  resultCount Int?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([query])
+  @@map("search_history")
+}
+
+model Report {
+  id             String       @id @default(cuid())
+  reporterId     String
+  trackId        String?
+  assignedToId   String?
+  reason         ReportReason
+  message        String?
+  status         ReportStatus @default(OPEN)
+  resolution     String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  resolvedAt     DateTime?
+  reporter       User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  assignedTo     User?        @relation("ReportAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  track          Track?       @relation(fields: [trackId], references: [id], onDelete: SetNull)
+  adminActions   AdminAction[]
+
+  @@index([reporterId, status])
+  @@index([assignedToId, status])
+  @@index([trackId, status])
+  @@map("reports")
+}
+
+model AdminAction {
+  id             String          @id @default(cuid())
+  actorId        String
+  targetUserId   String?
+  reportId       String?
+  actionType     AdminActionType
+  entityType     String
+  entityId       String?
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+  actor          User            @relation("AdminActor", fields: [actorId], references: [id], onDelete: Cascade)
+  targetUser     User?           @relation("AdminTargetUser", fields: [targetUserId], references: [id], onDelete: SetNull)
+  report         Report?         @relation(fields: [reportId], references: [id], onDelete: SetNull)
+
+  @@index([actorId, createdAt])
+  @@index([targetUserId])
+  @@index([reportId])
+  @@map("admin_actions")
+}
+
+model SyncState {
+  id                String       @id @default(cuid())
+  userId            String
+  deviceId          String?
+  entityType        String
+  lastCursor        String?
+  lastSyncedAt      DateTime?
+  status            SyncStatus   @default(IDLE)
+  lastError         String?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  user              User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  device            Device?      @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, deviceId, entityType])
+  @@index([status, updatedAt])
+  @@map("sync_state")
+}
+
+model EntityChange {
+  id             String          @id @default(cuid())
+  userId         String?
+  trackId        String?
+  entityType     String
+  entityId       String
+  operation      ChangeOperation
+  payload        Json?
+  version        Int             @default(1)
+  createdAt      DateTime        @default(now())
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  track          Track?          @relation(fields: [trackId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([userId, createdAt])
+  @@map("entity_changes")
+}
+
+model Notification {
+  id          String              @id @default(cuid())
+  userId      String
+  type        NotificationType
+  status      NotificationStatus  @default(UNREAD)
+  title       String
+  message     String
+  data        Json?
+  readAt      DateTime?
+  createdAt   DateTime            @default(now())
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, createdAt])
+  @@map("notifications")
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  userId      String
+  token       String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("password_reset_tokens")
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  status             SubscriptionStatus @default(TRIAL)
+  plan               SubscriptionPlan   @default(MONTHLY)
+  gateway            PaymentGateway
+  externalSubId      String?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelledAt        DateTime?
+  cancelReason       String?
+  trialEndsAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments           Payment[]
+
+  @@index([status, currentPeriodEnd])
+  @@map("subscriptions")
+}
+
+model Payment {
+  id             String         @id @default(cuid())
+  userId         String
+  subscriptionId String?
+  gateway        PaymentGateway
+  externalPayId  String         @unique
+  status         PaymentStatus  @default(PENDING)
+  amountCents    Int
+  currency       String         @default("BRL")
+  gatewayPayload Json?
+  paidAt         DateTime?
+  refundedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription?  @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([externalPayId])
+  @@map("payments")
+}
+
+model Coupon {
+  id            String             @id @default(cuid())
+  code          String             @unique
+  type          CouponType
+  discountPct   Int?
+  discountCents Int?
+  freeDays      Int?
+  maxUses       Int?
+  usedCount     Int                @default(0)
+  isActive      Boolean            @default(true)
+  expiresAt     DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  redemptions   CouponRedemption[]
+
+  @@index([code, isActive])
+  @@map("coupons")
+}
+
+model CouponRedemption {
+  id         String   @id @default(cuid())
+  couponId   String
+  userId     String
+  redeemedAt DateTime @default(now())
+  coupon     Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([couponId, userId])
+  @@index([userId])
+  @@map("coupon_redemptions")
+}
+
+model DownloadQuota {
+  id         String   @id @default(cuid())
+  userId     String
+  monthKey   String
+  usedCount  Int      @default(0)
+  limitCount Int      @default(5)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, monthKey])
+  @@index([userId, monthKey])
+  @@map("download_quotas")
+}

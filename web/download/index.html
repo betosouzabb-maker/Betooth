@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Betooth – Download</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    :root {
+      --bg:        #0a0a0f;
+      --surface:   #13131a;
+      --surface2:  #1c1c27;
+      --border:    #2a2a3a;
+      --accent:    #6c63ff;
+      --accent2:   #a78bfa;
+      --green:     #22c55e;
+      --text:      #e8e8f0;
+      --muted:     #8888aa;
+      --android:   #34a853;
+      --ios:       #555;
+      --radius:    16px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* --- HERO --- */
+    .hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 64px 24px 48px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 700px;
+      background: radial-gradient(circle, rgba(108,99,255,.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .logo-wrap {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .logo-icon {
+      width: 72px; height: 72px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(108,99,255,.45);
+    }
+
+    .logo-icon svg { width: 40px; height: 40px; fill: #fff; }
+
+    .logo-text {
+      font-size: 2.4rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -1px;
+    }
+
+    .tagline {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 40px;
+    }
+
+    .version-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: .8rem;
+      color: var(--accent2);
+      margin-bottom: 48px;
+    }
+
+    .version-badge span { color: var(--muted); }
+
+    /* --- DOWNLOAD CARDS --- */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      max-width: 800px;
+      width: 100%;
+      padding: 0 24px 64px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 36px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+
+    .card:hover {
+      border-color: var(--accent);
+      box-shadow: 0 0 32px rgba(108,99,255,.15);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .platform-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .platform-icon.android { background: rgba(52,168,83,.15); }
+    .platform-icon.ios     { background: rgba(255,255,255,.08); }
+    .platform-icon svg     { width: 24px; height: 24px; }
+
+    .platform-info h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .platform-info p {
+      font-size: .82rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* QR Code container */
+    .qr-wrap {
+      background: #fff;
+      border-radius: 12px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-wrap canvas,
+    .qr-wrap img { display: block; }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 15px 24px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: filter .15s, transform .12s;
+    }
+
+    .btn:active { transform: scale(.97); }
+    .btn:hover  { filter: brightness(1.12); }
+
+    .btn-android {
+      background: var(--android);
+      color: #fff;
+    }
+
+    .btn-ios {
+      background: linear-gradient(135deg, #555 0%, #888 100%);
+      color: #fff;
+    }
+
+    .btn svg { width: 20px; height: 20px; flex-shrink: 0; }
+
+    .card-note {
+      font-size: .8rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* --- INSTRUCTIONS --- */
+    .instructions {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 0 24px 80px;
+    }
+
+    .instructions h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 32px;
+      color: var(--text);
+    }
+
+    .inst-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 600px) {
+      .inst-grid { grid-template-columns: 1fr; }
+    }
+
+    .inst-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 24px;
+    }
+
+    .inst-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .inst-card h3 .dot {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .8rem;
+      font-weight: 800;
+      flex-shrink: 0;
+    }
+
+    .dot-android { background: rgba(52,168,83,.2); color: var(--android); }
+    .dot-ios     { background: rgba(255,255,255,.1); color: #ccc; }
+
+    .inst-card ol {
+      list-style: none;
+      counter-reset: steps;
+    }
+
+    .inst-card ol li {
+      counter-increment: steps;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: .88rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .inst-card ol li:last-child { border-bottom: none; }
+
+    .inst-card ol li::before {
+      content: counter(steps);
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .75rem;
+      font-weight: 700;
+      color: var(--accent2);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .highlight { color: var(--accent2); font-weight: 600; }
+
+    /* --- FOOTER --- */
+    footer {
+      text-align: center;
+      padding: 32px 24px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: .82rem;
+    }
+
+    footer a { color: var(--accent2); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="logo-wrap">
+      <div class="logo-icon">
+        <!-- Music note SVG -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 3v10.55A4 4 0 1 0 11 17V7h4V3H9Z"/>
+        </svg>
+      </div>
+      <span class="logo-text">Betooth</span>
+    </div>
+    <p class="tagline">Seu app de música premium. Streaming, playlists inteligentes e download offline — sem Play Store ou App Store.</p>
+    <div class="version-badge">
+      <span>●</span>
+      Versão <strong>1.0.0</strong> &nbsp;<span>· Distribuição Direta</span>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD CARDS -->
+  <section class="cards">
+
+    <!-- Android Card -->
+    <div class="card" id="card-android">
+      <div class="card-header">
+        <div class="platform-icon android">
+          <!-- Android robot -->
+          <svg viewBox="0 0 24 24" fill="#34a853" xmlns="http://www.w3.org/2000/svg">
+            <path d="M17.523 15.342c-.552 0-1-.45-1-1V9.658c0-.552.448-1 1-1s1 .448 1 1v4.684c0 .55-.448 1-1 1Zm-11.046 0c-.552 0-1-.45-1-1V9.658c0-.552.448-1 1-1s1 .448 1 1v4.684c0 .55-.448 1-1 1Zm7.023-11.9-.883-1.67a.3.3 0 0 0-.53 0l-.882 1.67A5.985 5.985 0 0 0 8.5 5.5h7a5.985 5.985 0 0 0-2.705-2.058ZM8.5 6.5v8a.5.5 0 0 0 .5.5h6a.5.5 0 0 0 .5-.5v-8H8.5Zm1.5-1.5a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Zm4 0a.5.5 0 1 1 0-1 .5.5 0 0 1 0 1Zm-.5 9v1.5a1 1 0 1 1-2 0V14h2Z"/>
+          </svg>
+        </div>
+        <div class="platform-info">
+          <h2>Android</h2>
+          <p>APK · Android 5.0+ (API 21)</p>
+        </div>
+      </div>
+
+      <div class="qr-wrap">
+        <canvas id="qr-android"></canvas>
+      </div>
+
+      <a class="btn btn-android" id="btn-android" href="#" onclick="return downloadAndroid()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5 1.4-1.4 2.6 2.6V4h2v8.2l2.6-2.6L17 11l-5 5Zm-7 4v-2h14v2H5Z"/></svg>
+        Baixar APK (Android)
+      </a>
+
+      <p class="card-note">Escaneie o QR Code com a câmera do celular<br>ou clique no botão acima no dispositivo Android.</p>
+    </div>
+
+    <!-- iOS Card -->
+    <div class="card" id="card-ios">
+      <div class="card-header">
+        <div class="platform-icon ios">
+          <!-- Apple logo-like icon -->
+          <svg viewBox="0 0 24 24" fill="#ccc" xmlns="http://www.w3.org/2000/svg">
+            <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11Z"/>
+          </svg>
+        </div>
+        <div class="platform-info">
+          <h2>iOS</h2>
+          <p>IPA · iOS 13.0+ · Requer perfil enterprise</p>
+        </div>
+      </div>
+
+      <div class="qr-wrap">
+        <canvas id="qr-ios"></canvas>
+      </div>
+
+      <a class="btn btn-ios" id="btn-ios" href="#" onclick="return downloadIos()">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 16l-5-5 1.4-1.4 2.6 2.6V4h2v8.2l2.6-2.6L17 11l-5 5Zm-7 4v-2h14v2H5Z"/></svg>
+        Instalar IPA (iOS)
+      </a>
+
+      <p class="card-note">iOS: use o link OTA ou instale via AltStore / Sideloadly.<br>É necessário assinar o app ou usar um perfil Enterprise.</p>
+    </div>
+
+  </section>
+
+  <!-- INSTRUCTIONS -->
+  <section class="instructions">
+    <h2>Como instalar</h2>
+    <div class="inst-grid">
+
+      <!-- Android steps -->
+      <div class="inst-card">
+        <h3>
+          <span class="dot dot-android">A</span>
+          Android – Instalação
+        </h3>
+        <ol>
+          <li>Abra as <span class="highlight">Configurações</span> do Android.</li>
+          <li>Vá em <span class="highlight">Segurança</span> ou <span class="highlight">Apps especiais</span>.</li>
+          <li>Ative <span class="highlight">"Fontes desconhecidas"</span> ou <span class="highlight">"Instalar apps desconhecidos"</span>.</li>
+          <li>Baixe o APK pelo botão acima ou pelo QR Code.</li>
+          <li>Abra o arquivo APK baixado e toque em <span class="highlight">Instalar</span>.</li>
+          <li>Aguarde a instalação e abra o Betooth.</li>
+        </ol>
+      </div>
+
+      <!-- iOS steps -->
+      <div class="inst-card">
+        <h3>
+          <span class="dot dot-ios">i</span>
+          iOS – Instalação
+        </h3>
+        <ol>
+          <li><strong>Opção A – OTA:</strong> escaneie o QR code do iOS no iPhone. O link usa <span class="highlight">itms-services://</span>. Requer perfil Enterprise assinado.</li>
+          <li><strong>Opção B – AltStore:</strong> instale o <span class="highlight">AltStore</span> no PC e sideload do IPA via Wi-Fi.</li>
+          <li><strong>Opção C – Sideloadly:</strong> conecte o iPhone ao PC, abra o Sideloadly e arraste o IPA.</li>
+          <li>Após instalar, vá em <span class="highlight">Ajustes › Geral › VPN e Gerenc. de Dispositivo</span>.</li>
+          <li>Confie no certificado do desenvolvedor e abra o Betooth.</li>
+        </ol>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>Betooth &copy; 2025 &nbsp;·&nbsp; Distribuição direta &nbsp;·&nbsp; <a href="/api/v1/app-release/latest">API de releases</a></p>
+  </footer>
+
+  <script>
+    // ─────────────────────────────────────────────────────────────────────────
+    // CONFIG: Quando o backend estiver em produção, substitua a string abaixo
+    // pela URL real do seu servidor (ex: 'https://api.betooth.app').
+    // Enquanto estiver em desenvolvimento local, deixe como está.
+    // ─────────────────────────────────────────────────────────────────────────
+    const BACKEND_ORIGIN = '';   // << coloque a URL do backend aqui quando tiver produção
+
+    const BASE_URL = BACKEND_ORIGIN
+      || ((window.location.origin === 'null' || window.location.origin === '')
+          ? 'http://localhost:3333'
+          : window.location.origin);
+
+    const ANDROID_URL = `${BASE_URL}/api/v1/app-release/android`;
+    const IOS_URL     = `itms-services://?action=download-manifest&url=${encodeURIComponent(BASE_URL + '/api/v1/app-release/ios/manifest')}`;
+    const IOS_DIRECT  = `${BASE_URL}/api/v1/app-release/ios`;
+
+    // Set button hrefs
+    document.getElementById('btn-android').href = ANDROID_URL;
+    document.getElementById('btn-ios').href     = IOS_URL;
+
+    function downloadAndroid() {
+      window.location.href = ANDROID_URL;
+      return false;
+    }
+
+    function downloadIos() {
+      // Try OTA first; if it fails the user should use AltStore/Sideloadly
+      window.location.href = IOS_URL;
+      return false;
+    }
+
+    // Generate QR Codes
+    QRCode.toCanvas(document.getElementById('qr-android'), ANDROID_URL, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#000', light: '#fff' }
+    });
+
+    QRCode.toCanvas(document.getElementById('qr-ios'), IOS_URL, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#000', light: '#fff' }
+    });
+  </script>
+</body>
+</html>
