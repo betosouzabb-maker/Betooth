@@ -6,7 +6,7 @@
 .packages
 build/
 coverage/
-pubspec.lock
+# pubspec.lock — mantido no repo para builds reproduziveis no CI
 
 # ── Android ───────────────────────────────────────────────────────────────────
 **/android/.gradle/
@@ -38,6 +38,9 @@ yarn-error.log*
 .vscode/
 *.iml
 
-# ── OS ────────────────────────────────────────────────────────────────────────
+# ── Releases (binarios — subir via GitHub Releases, nao no repo) ──────────────
+releases/android/*.apk
+releases/ios/*.ipa
 .DS_Store
 Thumbs.db
+*.hprof

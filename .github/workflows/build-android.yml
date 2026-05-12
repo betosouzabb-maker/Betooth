@@ -26,11 +26,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # ── 3. Flutter SDK ───────────────────────────────────────────────────────
+      # ── 3. Flutter SDK (stable, sem versao fixa para evitar 404) ────────────
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.41.0"
           channel: stable
           cache: true
 
@@ -38,43 +37,98 @@ jobs:
       - name: Flutter version
         run: flutter --version
 
-      # ── 5. Accept Android SDK licenses ───────────────────────────────────────
-      # Must run BEFORE pub get so the SDK is ready for Gradle resolution
+      # ── 5. Create required asset directories ─────────────────────────────────
+      - name: Create asset directories
+        run: |
+          mkdir -p assets/fonts assets/icons assets/images assets/animations
+
+      # ── 6. Accept Android SDK licenses ───────────────────────────────────────
       - name: Accept Android SDK licenses
         run: |
-          echo y | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          yes | flutter doctor --android-licenses || true
+          yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses 2>/dev/null || true
+          yes | flutter doctor --android-licenses 2>/dev/null || true
 
-      # ── 6. Install dependencies ───────────────────────────────────────────────
+      # ── 7. Install dependencies ───────────────────────────────────────────────
       - name: Flutter pub get
         run: flutter pub get
 
-      # ── 7. Run code generation (Freezed / Drift / json_serializable) ──────────
+      # ── 8. Run code generation (Freezed / json_serializable) ──────────────────
       - name: Run build_runner
         run: dart run build_runner build --delete-conflicting-outputs
 
-      # ── 8. Reduce Gradle JVM heap (CI runners have ~7 GB RAM total) ──────────
-      - name: Patch Gradle JVM args for CI
+      # ── 9. Patch Gradle settings for CI compatibility ─────────────────────────
+      - name: Patch Gradle for CI
         run: |
-          sed -i 's/-Xmx[0-9]*[gGmM]/-Xmx4G/g' android/gradle.properties
-          sed -i 's/-XX:MaxMetaspaceSize=[0-9]*[gGmM]/-XX:MaxMetaspaceSize=512m/g' android/gradle.properties
-          cat android/gradle.properties
+          # Reduz memoria JVM para evitar OOM no CI
+          cat > android/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx3G -XX:MaxMetaspaceSize=512m -XX:ReservedCodeCacheSize=256m
+          org.gradle.daemon=false
+          org.gradle.parallel=false
+          org.gradle.caching=false
+          android.useAndroidX=true
+          android.enableJetifier=false
+          EOF
 
-      # ── 9. Build APK release ──────────────────────────────────────────────────
+          # Downgrade Gradle wrapper para versao estavel compativel com Flutter
+          cat > android/gradle/wrapper/gradle-wrapper.properties << 'EOF'
+          distributionBase=GRADLE_USER_HOME
+          distributionPath=wrapper/dists
+          zipStoreBase=GRADLE_USER_HOME
+          zipStorePath=wrapper/dists
+          distributionUrl=https\://services.gradle.org/distributions/gradle-8.7-bin.zip
+          EOF
+
+          # Downgrade AGP e Kotlin para versoes testadas com Flutter
+          cat > android/settings.gradle.kts << 'EOF'
+          pluginManagement {
+              val flutterSdkPath =
+                  run {
+                      val properties = java.util.Properties()
+                      file("local.properties").inputStream().use { properties.load(it) }
+                      val flutterSdkPath = properties.getProperty("flutter.sdk")
+                      require(flutterSdkPath != null) { "flutter.sdk not set in local.properties" }
+                      flutterSdkPath
+                  }
+
+              includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          plugins {
+              id("dev.flutter.flutter-plugin-loader") version "1.0.0"
+              id("com.android.application") version "8.3.2" apply false
+              id("org.jetbrains.kotlin.android") version "1.9.25" apply false
+          }
+
+          include(":app")
+          EOF
+
+          echo "Gradle files patched."
+          cat android/gradle.properties
+          cat android/gradle/wrapper/gradle-wrapper.properties
+
+      # ── 10. Build APK release ─────────────────────────────────────────────────
       - name: Build APK release
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx3G"
         run: |
           flutter build apk --release \
             --build-name=1.0.0 \
             --build-number=${{ github.run_number }}
 
-      # ── 10. Rename APK for clarity ─────────────────────────────────────────────
+      # ── 11. Rename APK for clarity ────────────────────────────────────────────
       - name: Rename APK artifact
         run: |
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
              dist/betooth-v1.0.0-build${{ github.run_number }}.apk
 
-      # ── 11. Upload APK artifact ───────────────────────────────────────────────
+      # ── 12. Upload APK artifact ───────────────────────────────────────────────
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
@@ -83,7 +137,31 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-      # ── 12. Print summary ─────────────────────────────────────────────────────
+      # ── 13. Create GitHub Release (only on push to main) ──────────────────────
+      - name: Create GitHub Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-build${{ github.run_number }}
+          name: "Betooth v1.0.0 (build ${{ github.run_number }})"
+          body: |
+            ## Betooth v1.0.0 – Build ${{ github.run_number }}
+
+            **APK para Android** (API 21+, Android 5.0+)
+
+            ### Como instalar:
+            1. Baixe o arquivo `betooth.apk` abaixo
+            2. No Android: Configurações → Segurança → Fontes desconhecidas → Ativar
+            3. Abra o APK baixado e toque em Instalar
+
+            Commit: `${{ github.sha }}`
+          files: dist/betooth-v1.0.0-build${{ github.run_number }}.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 14. Print summary ─────────────────────────────────────────────────────
       - name: Build summary
         run: |
           APK="dist/betooth-v1.0.0-build${{ github.run_number }}.apk"
