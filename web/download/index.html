@@ -443,20 +443,23 @@
 
   <script>
     // ─────────────────────────────────────────────────────────────────────────
-    // CONFIG: Quando o backend estiver em produção, substitua a string abaixo
-    // pela URL real do seu servidor (ex: 'https://api.betooth.app').
-    // Enquanto estiver em desenvolvimento local, deixe como está.
+    // CONFIG:
+    //   GITHUB_APK_URL  — URL direta do APK no GitHub Releases (preferida)
+    //   BACKEND_ORIGIN  — URL do backend quando estiver em produção (fallback)
+    //
+    // Prioridade: GITHUB_APK_URL > BACKEND_ORIGIN > localhost
     // ─────────────────────────────────────────────────────────────────────────
-    const BACKEND_ORIGIN = '';   // << coloque a URL do backend aqui quando tiver produção
+    const GITHUB_APK_URL = 'https://github.com/betosouzabb-maker/betooth/releases/latest/download/betooth-latest.apk';
+    const BACKEND_ORIGIN = '';   // << URL do backend em producao (ex: https://api.betooth.repl.co)
 
     const BASE_URL = BACKEND_ORIGIN
       || ((window.location.origin === 'null' || window.location.origin === '')
           ? 'http://localhost:3333'
           : window.location.origin);
 
-    const ANDROID_URL = `${BASE_URL}/api/v1/app-release/android`;
+    // Se tiver URL direta do GitHub, usa ela; senão usa o backend
+    const ANDROID_URL = GITHUB_APK_URL || `${BASE_URL}/api/v1/app-release/android`;
     const IOS_URL     = `itms-services://?action=download-manifest&url=${encodeURIComponent(BASE_URL + '/api/v1/app-release/ios/manifest')}`;
-    const IOS_DIRECT  = `${BASE_URL}/api/v1/app-release/ios`;
 
     // Set button hrefs
     document.getElementById('btn-android').href = ANDROID_URL;
@@ -468,7 +471,6 @@
     }
 
     function downloadIos() {
-      // Try OTA first; if it fails the user should use AltStore/Sideloadly
       window.location.href = IOS_URL;
       return false;
     }
