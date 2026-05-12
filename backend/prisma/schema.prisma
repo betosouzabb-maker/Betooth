@@ -5,7 +5,9 @@ generator client {
 datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  // directUrl é opcional — necessário apenas em ambientes com connection pooling (ex: Supabase).
+  // No Replit, DATABASE_URL já é a URL direta. Descomente se usar pooler:
+  // directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
