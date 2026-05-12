@@ -8,8 +8,8 @@ Gerado em: 2025-05-11 | **Atualizado: 2026-05-12**
 
 | Componente | Status | URL / Local |
 |---|---|---|
-| Pagina de Download | ONLINE | https://betooth-download.netlify.app |
-| APK Android v1.0.0 | **DISPONIVEL** | https://github.com/betosouzabb-maker/Betooth/releases/latest/download/betooth-latest.apk |
+| Pagina de Download | **ONLINE + ATUALIZADA** | https://betooth-download.netlify.app |
+| APK Android v1.0.0 | **DISPONIVEL (64 MB)** | https://github.com/betosouzabb-maker/Betooth/releases/latest/download/betooth-latest.apk |
 | GitHub Releases | **PUBLICADO** | https://github.com/betosouzabb-maker/Betooth/releases/tag/v1.0.0 |
 | GitHub Actions CI | **CONFIGURADO** | Builda automaticamente a cada push para main |
 | Backend (configurado) | PRONTO para deploy | Replit / Railway |
