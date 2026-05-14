@@ -1,4 +1,5 @@
 import 'package:audio_service/audio_service.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -8,9 +9,10 @@ import 'features/playback/core/audio_service_handler.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  BetoothAudioHandler? audioHandler;
+  final overrides = <Override>[];
+
   try {
-    audioHandler = await AudioService.init<BetoothAudioHandler>(
+    final audioHandler = await AudioService.init<BetoothAudioHandler>(
       builder: BetoothAudioHandler.new,
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.betooth.audio',
@@ -19,16 +21,14 @@ void main() async {
         androidStopForegroundOnPause: true,
       ),
     );
-  } catch (e) {
-    debugPrint('AudioService init failed: $e');
+    overrides.add(audioHandlerProvider.overrideWithValue(audioHandler));
+  } catch (e, st) {
+    debugPrint('AudioService init failed: $e\n$st');
   }
 
   runApp(
     ProviderScope(
-      overrides: [
-        if (audioHandler != null)
-          audioHandlerProvider.overrideWithValue(audioHandler),
-      ],
+      overrides: overrides,
       child: const BetoothApp(),
     ),
   );

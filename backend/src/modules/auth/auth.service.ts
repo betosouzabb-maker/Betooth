@@ -1,5 +1,5 @@
 import { DevicePlatform, SessionStatus, User, UserStatus } from '@prisma/client';
-import argon2 from 'argon2';
+import bcrypt from 'bcryptjs';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import jwt, { JwtPayload, SignOptions } from 'jsonwebtoken';
 import { prisma } from '../../infra/database/prisma';
@@ -194,7 +194,7 @@ export const authService = {
 
     ensureUserIsNotBlocked(user);
 
-    const isPasswordValid = await argon2.verify(user.passwordHash, input.password);
+    const isPasswordValid = await bcrypt.compare(input.password, user.passwordHash);
 
     if (!isPasswordValid) {
       throw new AppError('Invalid email or password', 401, 'AUTH_INVALID_CREDENTIALS');
@@ -222,12 +222,7 @@ export const authService = {
       throw new AppError('Email is already in use', 409, 'AUTH_EMAIL_IN_USE');
     }
 
-    const passwordHash = await argon2.hash(input.password, {
-      type: argon2.argon2id,
-      memoryCost: 19_456,
-      timeCost: 2,
-      parallelism: 1
-    });
+    const passwordHash = await bcrypt.hash(input.password, 12);
 
     const user = await prisma.user.create({
       data: {
@@ -370,12 +365,7 @@ export const authService = {
       throw new AppError('Reset token is invalid or expired', 400, 'AUTH_RESET_TOKEN_INVALID');
     }
 
-    const passwordHash = await argon2.hash(input.password, {
-      type: argon2.argon2id,
-      memoryCost: 19_456,
-      timeCost: 2,
-      parallelism: 1
-    });
+    const passwordHash = await bcrypt.hash(input.password, 12);
 
     await prisma.$transaction([
       prisma.user.update({
