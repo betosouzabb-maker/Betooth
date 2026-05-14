@@ -98,6 +98,26 @@ https://<seu-repl-nome>.<seu-usuario>.repl.co
 
 ---
 
+## Passo 7 — Configurar Webhook do Mercado Pago
+
+Apos o backend estar no ar:
+
+1. Acesse https://www.mercadopago.com.br/developers/panel/webhooks
+2. Clique em **"Adicionar nova URL de notificacao"**
+3. Preencha:
+   - **URL:** `https://<seu-repl-nome>.<seu-usuario>.repl.co/api/v1/subscriptions/webhook`
+   - **Eventos:** selecione `payment`
+4. Clique em **"Salvar"**
+5. Copie a **Chave secreta** (Webhook Secret) gerada pelo painel
+6. No Replit → **Secrets**, adicione:
+   ```
+   MP_WEBHOOK_SECRET=<chave-copiada>
+   ```
+7. Reinicie o Repl (Stop → Run)
+8. Use o botao **"Enviar teste"** no painel MP — deve retornar 200
+
+---
+
 ## Resumo das variaveis automaticas do Replit
 
 | Variavel | Definida por |

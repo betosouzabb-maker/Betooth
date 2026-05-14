@@ -76,8 +76,9 @@ export const subscriptionsController = {
   async webhook(req: Request, res: Response, next: NextFunction) {
     try {
       const xSignature = req.headers['x-signature'] as string | undefined;
+      const xRequestId = req.headers['x-request-id'] as string | undefined;
       const rawBody = (req as unknown as { rawBody?: string }).rawBody ?? JSON.stringify(req.body);
-      const result = await subscriptionsService.handleWebhook(req.body, xSignature, rawBody);
+      const result = await subscriptionsService.handleWebhook(req.body, xSignature, rawBody, xRequestId);
       return sendSuccess(res, 200, result);
     } catch (error) {
       return next(error);

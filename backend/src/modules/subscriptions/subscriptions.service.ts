@@ -321,14 +321,54 @@ export const subscriptionsService = {
   // -------------------------------------------------------------------------
   // POST /webhook — Mercado Pago notification
   // -------------------------------------------------------------------------
-  async handleWebhook(body: unknown, xSignature: string | undefined, rawBody: string) {
+  async handleWebhook(
+    body: unknown,
+    xSignature: string | undefined,
+    rawBody: string,
+    xRequestId?: string,
+  ) {
     const secret = env.MP_WEBHOOK_SECRET;
 
     if (secret) {
-      const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
-      if (!xSignature || xSignature !== expected) {
+      // O Mercado Pago envia x-signature no formato: ts=<timestamp>,v1=<hmac_sha256>
+      // O manifesto para assinar é: "id:<paymentId>;request-id:<x-request-id>;ts:<timestamp>;"
+      // Ref: https://www.mercadopago.com.br/developers/pt/docs/your-integrations/notifications/webhooks
+      if (!xSignature) {
         throw new AppError('Invalid webhook signature', 401, 'WEBHOOK_SIGNATURE_INVALID');
       }
+
+      const parts: Record<string, string> = {};
+      for (const part of xSignature.split(',')) {
+        const [k, v] = part.split('=');
+        if (k && v) parts[k.trim()] = v.trim();
+      }
+
+      const ts = parts['ts'];
+      const v1 = parts['v1'];
+
+      if (!ts || !v1) {
+        throw new AppError('Invalid webhook signature', 401, 'WEBHOOK_SIGNATURE_INVALID');
+      }
+
+      const payload = body as Record<string, unknown>;
+      const paymentId = String((payload.data as Record<string, unknown>)?.id ?? '');
+
+      // Monta o template conforme documentação do MP
+      const templateParts: string[] = [];
+      if (paymentId) templateParts.push(`id:${paymentId}`);
+      if (xRequestId) templateParts.push(`request-id:${xRequestId}`);
+      templateParts.push(`ts:${ts}`);
+      const template = templateParts.join(';') + ';';
+
+      const expected = createHmac('sha256', secret).update(template).digest('hex');
+
+      if (expected !== v1) {
+        logger.warn({ xSignature, template }, 'Webhook signature mismatch');
+        throw new AppError('Invalid webhook signature', 401, 'WEBHOOK_SIGNATURE_INVALID');
+      }
+
+      // rawBody mantido na assinatura para uso futuro / debug
+      void rawBody;
     }
 
     const payload = body as Record<string, unknown>;

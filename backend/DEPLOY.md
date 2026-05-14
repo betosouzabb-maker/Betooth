@@ -127,10 +127,51 @@ Resposta esperada:
 
 ## 8. Configurar Webhook do Mercado Pago
 
+### 8.1 Acessar o painel
+
 1. Acesse https://www.mercadopago.com.br/developers/panel/webhooks
-2. Configure a URL: `https://<URL-RAILWAY>/api/v1/subscriptions/webhook`
-3. Eventos: `payment` e `subscription_authorized_payment`
-4. Copie o **MP_WEBHOOK_SECRET** gerado e atualize a variável no Railway
+2. Certifique-se de estar com a conta de produção selecionada (não sandbox)
+
+### 8.2 Criar a notificação
+
+1. Clique em **"Adicionar nova URL de notificação"** (ou "Configurar notificações")
+2. Preencha:
+   - **URL:** `https://<SUA-URL-RAILWAY>/api/v1/subscriptions/webhook`
+     - Exemplo: `https://betooth-backend.up.railway.app/api/v1/subscriptions/webhook`
+   - **Eventos a receber:**
+     - [x] `payment` — pagamentos criados/atualizados (obrigatório para VIP)
+     - [x] `subscription_authorized_payment` — se usar assinaturas recorrentes do MP
+3. Clique em **"Salvar"**
+
+### 8.3 Copiar o MP_WEBHOOK_SECRET
+
+Após salvar, o painel exibe um campo **"Chave secreta"** (Webhook Secret). Copie esse valor.
+
+### 8.4 Adicionar ao Railway
+
+No serviço do backend no Railway → **Variables**:
+```
+MP_WEBHOOK_SECRET=<chave-copiada-do-painel-MP>
+```
+
+O backend já valida a assinatura automaticamente quando `MP_WEBHOOK_SECRET` está preenchido.
+
+### 8.5 Verificar se o webhook está funcionando
+
+Após configurar, o painel do MP tem um botão **"Testar"** / **"Enviar teste"**.
+O endpoint deve responder `200 { "status": "ok", "data": { "received": true } }`.
+
+### 8.6 Como a validação funciona (técnico)
+
+O Mercado Pago envia o header `x-signature` no formato:
+```
+x-signature: ts=1698876344,v1=<hmac-sha256>
+```
+
+O backend reconstrói o template `id:<paymentId>;request-id:<x-request-id>;ts:<timestamp>;`
+e valida usando HMAC-SHA256 com `MP_WEBHOOK_SECRET`.
+
+> Se `MP_WEBHOOK_SECRET` estiver vazio, a validação é ignorada (útil em dev local).
 
 ---
 

@@ -7,10 +7,12 @@ abstract final class AppConfig {
   static const iosMinVersion = '13.0';
 
   static String get apiBaseUrl {
+    const productionUrl = 'https://betooth-backend.onrender.com/api/v1';
+
     if (kIsWeb) {
       return const String.fromEnvironment(
         'API_BASE_URL',
-        defaultValue: 'http://localhost:3333/api/v1',
+        defaultValue: productionUrl,
       );
     }
 
@@ -18,12 +20,12 @@ abstract final class AppConfig {
       case TargetPlatform.android:
         return const String.fromEnvironment(
           'API_BASE_URL',
-          defaultValue: 'http://10.0.2.2:3333/api/v1',
+          defaultValue: productionUrl,
         );
       default:
         return const String.fromEnvironment(
           'API_BASE_URL',
-          defaultValue: 'http://localhost:3333/api/v1',
+          defaultValue: productionUrl,
         );
     }
   }
