@@ -8,20 +8,26 @@ import 'features/playback/core/audio_service_handler.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  final audioHandler = await AudioService.init<BetoothAudioHandler>(
-    builder: BetoothAudioHandler.new,
-    config: const AudioServiceConfig(
-      androidNotificationChannelId: 'com.betooth.audio',
-      androidNotificationChannelName: 'Betooth',
-      androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
-    ),
-  );
+  BetoothAudioHandler? audioHandler;
+  try {
+    audioHandler = await AudioService.init<BetoothAudioHandler>(
+      builder: BetoothAudioHandler.new,
+      config: const AudioServiceConfig(
+        androidNotificationChannelId: 'com.betooth.audio',
+        androidNotificationChannelName: 'Betooth',
+        androidNotificationOngoing: true,
+        androidStopForegroundOnPause: true,
+      ),
+    );
+  } catch (e) {
+    debugPrint('AudioService init failed: $e');
+  }
 
   runApp(
     ProviderScope(
       overrides: [
-        audioHandlerProvider.overrideWithValue(audioHandler),
+        if (audioHandler != null)
+          audioHandlerProvider.overrideWithValue(audioHandler),
       ],
       child: const BetoothApp(),
     ),
