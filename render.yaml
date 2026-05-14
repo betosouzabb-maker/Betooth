@@ -4,7 +4,7 @@ services:
     runtime: node
     repo: https://github.com/betosouzabb-maker/Betooth
     rootDir: backend
-    buildCommand: npm ci --include=dev && npm run build && npm run migrate:deploy
+    buildCommand: npm ci --include=dev && npm run build && npx prisma db push
     startCommand: node dist/src/server.js
     healthCheckPath: /api/v1/health
     plan: free
