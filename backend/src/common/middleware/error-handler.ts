@@ -34,5 +34,8 @@ export const errorHandler = (error: Error, req: Request, res: Response, _next: N
     'Unhandled application error'
   );
 
+  // eslint-disable-next-line no-console
+  console.error('[ERROR]', req.method, req.originalUrl, error.message, error.stack);
+
   return sendError(res, 500, 'Internal server error', 'INTERNAL_SERVER_ERROR');
 };

@@ -213,6 +213,7 @@ export const authService = {
     };
   },
   async register(input: RegisterInput, context: RequestContext) {
+    console.log('[AUTH] Register called for:', input.email);
     const email = input.email.toLowerCase().trim();
     const existingUser = await prisma.user.findUnique({
       where: { email }
@@ -222,7 +223,9 @@ export const authService = {
       throw new AppError('Email is already in use', 409, 'AUTH_EMAIL_IN_USE');
     }
 
+    console.log('[AUTH] Hashing password...');
     const passwordHash = await bcrypt.hash(input.password, 12);
+    console.log('[AUTH] Password hashed, creating user...');
 
     const user = await prisma.user.create({
       data: {
@@ -234,6 +237,7 @@ export const authService = {
         status: UserStatus.ACTIVE
       }
     });
+    console.log('[AUTH] User created:', user.id);
 
     if (input.deviceId) {
       await prisma.device.upsert({
@@ -260,7 +264,9 @@ export const authService = {
       });
     }
 
+    console.log('[AUTH] Creating session tokens...');
     const session = await createSessionTokens(user, context);
+    console.log('[AUTH] Register complete');
 
     return {
       user: mapUserProfile(user),
