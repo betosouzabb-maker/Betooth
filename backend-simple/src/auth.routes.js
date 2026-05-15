@@ -3,12 +3,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { z } = require('zod');
-const { db, findOne, insert, update } = require('../../infra/database');
-const { env } = require('../../config/env');
-const { AppError } = require('../../common/error-handler');
-const { validateBody } = require('../../common/validator');
-const { authGuard } = require('../../common/auth-guard');
-const { sendSuccess } = require('../../common/response');
+const { db, findOne, insert, update } = require('./database');
+const { env } = require('./env');
+const { AppError } = require('./error-handler');
+const { validateBody } = require('./validator');
+const { authGuard } = require('./auth-guard');
+const { sendSuccess } = require('./response');
 
 const router = express.Router();
 
