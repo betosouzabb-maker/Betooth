@@ -7,7 +7,7 @@ abstract final class AppConfig {
   static const iosMinVersion = '13.0';
 
   static String get apiBaseUrl {
-    const productionUrl = 'https://betooth-backend.onrender.com/api/v1';
+    const productionUrl = 'https://betooth-simple-backend.onrender.com/api/v1';
 
     if (kIsWeb) {
       return const String.fromEnvironment(
