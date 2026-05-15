@@ -1,10 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-
-export class AppError extends Error {
-  public readonly statusCode: number;
-  public readonly code?: string;
-
-  constructor(message: string, statusCode = 500, code?: string) {
+class AppError extends Error {
+  constructor(message, statusCode = 500, code) {
     super(message);
     this.name = 'AppError';
     this.statusCode = statusCode;
@@ -12,7 +7,7 @@ export class AppError extends Error {
   }
 }
 
-export const errorHandler = (error: Error, req: Request, res: Response, _next: NextFunction): Response => {
+const errorHandler = (error, req, res, _next) => {
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({
       success: false,
@@ -28,9 +23,11 @@ export const errorHandler = (error: Error, req: Request, res: Response, _next: N
   });
 };
 
-export const notFoundHandler = (req: Request, res: Response): Response => {
+const notFoundHandler = (req, res) => {
   return res.status(404).json({
     success: false,
     error: { message: `Route ${req.method} ${req.originalUrl} not found`, code: 'ROUTE_NOT_FOUND' }
   });
 };
+
+module.exports = { AppError, errorHandler, notFoundHandler };

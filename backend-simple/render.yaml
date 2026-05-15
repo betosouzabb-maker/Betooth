@@ -4,8 +4,8 @@ services:
     runtime: node
     repo: https://github.com/betosouzabb-maker/Betooth
     rootDir: backend-simple
-    buildCommand: chmod +x build-simple.sh && ./build-simple.sh
-    startCommand: chmod +x start-simple.sh && ./start-simple.sh
+    buildCommand: pnpm install
+    startCommand: node src/server.js
     healthCheckPath: /api/v1/health
     plan: free
     autoDeploy: true

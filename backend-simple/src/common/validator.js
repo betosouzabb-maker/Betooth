@@ -1,12 +1,8 @@
-import { Request, Response, NextFunction } from 'express';
-import { ZodSchema } from 'zod';
-import { AppError } from './error-handler';
-
-export const validateBody = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+const validateBody = (schema) => {
+  return (req, res, next) => {
     const result = schema.safeParse(req.body);
     if (!result.success) {
-      res.status(422).json({
+      return res.status(422).json({
         success: false,
         error: {
           message: 'Validation failed',
@@ -14,18 +10,17 @@ export const validateBody = (schema: ZodSchema) => {
           details: result.error.flatten()
         }
       });
-      return;
     }
     req.body = result.data;
     next();
   };
 };
 
-export const validateQuery = (schema: ZodSchema) => {
-  return (req: Request, res: Response, next: NextFunction): void => {
+const validateQuery = (schema) => {
+  return (req, res, next) => {
     const result = schema.safeParse(req.query);
     if (!result.success) {
-      res.status(422).json({
+      return res.status(422).json({
         success: false,
         error: {
           message: 'Validation failed',
@@ -33,9 +28,10 @@ export const validateQuery = (schema: ZodSchema) => {
           details: result.error.flatten()
         }
       });
-      return;
     }
     req.query = result.data;
     next();
   };
 };
+
+module.exports = { validateBody, validateQuery };

@@ -1,16 +1,16 @@
-import express, { Request, Response } from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
-import rateLimit from 'express-rate-limit';
-import { env } from './config/env';
-import { initDatabase } from './infra/database';
-import { errorHandler, notFoundHandler } from './common/error-handler';
-import authRoutes from './modules/auth/auth.routes';
-import musicRoutes from './modules/music/music.routes';
-import libraryRoutes from './modules/library/library.routes';
-import downloadsRoutes from './modules/downloads/downloads.routes';
-import subscriptionsRoutes from './modules/subscriptions/subscriptions.routes';
-import adminRoutes from './modules/admin/admin.routes';
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { env } = require('./config/env');
+const { initDatabase } = require('./infra/database');
+const { errorHandler, notFoundHandler } = require('./common/error-handler');
+const authRoutes = require('./modules/auth/auth.routes');
+const musicRoutes = require('./modules/music/music.routes');
+const libraryRoutes = require('./modules/library/library.routes');
+const downloadsRoutes = require('./modules/downloads/downloads.routes');
+const subscriptionsRoutes = require('./modules/subscriptions/subscriptions.routes');
+const adminRoutes = require('./modules/admin/admin.routes');
 
 const app = express();
 
@@ -37,7 +37,7 @@ app.set('trust proxy', 1);
 initDatabase();
 
 // Health check
-app.get(`${env.API_PREFIX}/health`, (_req: Request, res: Response) => {
+app.get(`${env.API_PREFIX}/health`, (req, res) => {
   return res.json({ success: true, data: { status: 'ok', service: env.APP_NAME } });
 });
 

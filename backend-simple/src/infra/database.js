@@ -1,6 +1,6 @@
-import fs from 'fs';
-import path from 'path';
-import { env } from '../config/env';
+const fs = require('fs');
+const path = require('path');
+const { env } = require('../config/env');
 
 const DATA_DIR = env.NODE_ENV === 'production' ? './data' : './.tmp';
 const DB_FILE = path.join(DATA_DIR, 'betooth.json');
@@ -9,25 +9,7 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-interface Database {
-  users: any[];
-  user_sessions: any[];
-  devices: any[];
-  tracks: any[];
-  user_library: any[];
-  playlists: any[];
-  playlist_tracks: any[];
-  favorites: any[];
-  play_history: any[];
-  search_history: any[];
-  downloads: any[];
-  subscriptions: any[];
-  notifications: any[];
-}
-
-let db: Database;
-
-function loadDb(): Database {
+function loadDb() {
   if (fs.existsSync(DB_FILE)) {
     return JSON.parse(fs.readFileSync(DB_FILE, 'utf-8'));
   }
@@ -48,14 +30,13 @@ function loadDb(): Database {
   };
 }
 
-export function saveDb(): void {
+let db = loadDb();
+
+function saveDb() {
   fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2));
 }
 
-export function initDatabase() {
-  db = loadDb();
-
-  // Insert sample tracks if empty
+function initDatabase() {
   if (db.tracks.length === 0) {
     db.tracks = [
       { id: 'track-1', title: 'Bohemian Rhapsody', artist: 'Queen', album: 'A Night at the Opera', genre: 'Rock', duration: 354, cover_url: 'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b', audio_url: 'https://example.com/audio1.mp3', file_size: null, bitrate: null, sample_rate: null, lyrics: null, is_explicit: 0, play_count: 0, download_count: 0, status: 'ACTIVE', uploaded_by: null, created_at: new Date().toISOString(), updated_at: new Date().toISOString() },
@@ -66,26 +47,24 @@ export function initDatabase() {
     ];
     saveDb();
   }
-
   console.log('[DB] JSON database initialized');
 }
 
-// Simple query helpers
-export function findOne(table: keyof Database, predicate: (item: any) => boolean): any | undefined {
+function findOne(table, predicate) {
   return db[table].find(predicate);
 }
 
-export function findAll(table: keyof Database, predicate?: (item: any) => boolean): any[] {
+function findAll(table, predicate) {
   if (predicate) return db[table].filter(predicate);
   return [...db[table]];
 }
 
-export function insert(table: keyof Database, item: any): void {
+function insert(table, item) {
   db[table].push(item);
   saveDb();
 }
 
-export function update(table: keyof Database, predicate: (item: any) => boolean, updater: (item: any) => any): void {
+function update(table, predicate, updater) {
   const idx = db[table].findIndex(predicate);
   if (idx !== -1) {
     db[table][idx] = updater(db[table][idx]);
@@ -93,9 +72,9 @@ export function update(table: keyof Database, predicate: (item: any) => boolean,
   }
 }
 
-export function remove(table: keyof Database, predicate: (item: any) => boolean): void {
+function remove(table, predicate) {
   db[table] = db[table].filter(item => !predicate(item));
   saveDb();
 }
 
-export { db };
+module.exports = { db, initDatabase, saveDb, findOne, findAll, insert, update, remove };

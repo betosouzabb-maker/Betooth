@@ -1,16 +1,16 @@
-import { Router } from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
-import { v4 as uuidv4 } from 'uuid';
-import { db, findOne, insert, update } from '../infra/database';
-import { env } from '../config/env';
-import { AppError } from '../common/error-handler';
-import { validateBody } from '../common/validator';
-import { authGuard, AuthRequest } from '../common/auth-guard';
-import { sendSuccess } from '../common/response';
-import { z } from 'zod';
+const express = require('express');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const { v4: uuidv4 } = require('uuid');
+const { z } = require('zod');
+const { db, findOne, insert, update } = require('../infra/database');
+const { env } = require('../config/env');
+const { AppError } = require('../common/error-handler');
+const { validateBody } = require('../common/validator');
+const { authGuard } = require('../common/auth-guard');
+const { sendSuccess } = require('../common/response');
 
-const router = Router();
+const router = express.Router();
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -41,7 +41,7 @@ const refreshSchema = z.object({
   refreshToken: z.string(),
 });
 
-function signAccessToken(user: any, sessionId: string): string {
+function signAccessToken(user, sessionId) {
   return jwt.sign(
     { userId: user.id, email: user.email, role: user.role, sessionId, type: 'access' },
     env.JWT_ACCESS_SECRET,
@@ -49,7 +49,7 @@ function signAccessToken(user: any, sessionId: string): string {
   );
 }
 
-function signRefreshToken(user: any, sessionId: string): string {
+function signRefreshToken(user, sessionId) {
   return jwt.sign(
     { userId: user.id, email: user.email, sessionId, type: 'refresh' },
     env.JWT_REFRESH_SECRET,
@@ -57,7 +57,7 @@ function signRefreshToken(user: any, sessionId: string): string {
   );
 }
 
-function createSession(user: any, context: any) {
+function createSession(user, context) {
   const sessionId = uuidv4();
   const refreshToken = signRefreshToken(user, sessionId);
   const accessToken = signAccessToken(user, sessionId);
@@ -80,7 +80,7 @@ function createSession(user: any, context: any) {
   return { accessToken, refreshToken };
 }
 
-router.post('/register', validateBody(registerSchema), (req, res) => {
+router.post('/register', validateBody(registerSchema), (req, res, next) => {
   try {
     const input = req.body;
     const email = input.email.toLowerCase().trim();
@@ -148,12 +148,11 @@ router.post('/register', validateBody(registerSchema), (req, res) => {
       ...session
     }, 201);
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError('Registration failed', 500, 'INTERNAL_SERVER_ERROR');
+    next(error);
   }
 });
 
-router.post('/login', validateBody(loginSchema), (req, res) => {
+router.post('/login', validateBody(loginSchema), (req, res, next) => {
   try {
     const input = req.body;
     const email = input.email.toLowerCase().trim();
@@ -225,15 +224,14 @@ router.post('/login', validateBody(loginSchema), (req, res) => {
       ...session
     });
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError('Login failed', 500, 'INTERNAL_SERVER_ERROR');
+    next(error);
   }
 });
 
-router.post('/refresh', validateBody(refreshSchema), (req, res) => {
+router.post('/refresh', validateBody(refreshSchema), (req, res, next) => {
   try {
     const { refreshToken } = req.body;
-    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET) as any;
+    const payload = jwt.verify(refreshToken, env.JWT_REFRESH_SECRET);
 
     if (payload.type !== 'refresh' || !payload.sessionId) {
       throw new AppError('Invalid refresh token', 401, 'AUTH_REFRESH_INVALID');
@@ -253,16 +251,15 @@ router.post('/refresh', validateBody(refreshSchema), (req, res) => {
 
     return sendSuccess(res, { accessToken: newAccessToken });
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError('Invalid refresh token', 401, 'AUTH_REFRESH_INVALID');
+    next(error);
   }
 });
 
-router.post('/logout', authGuard, (req: AuthRequest, res) => {
+router.post('/logout', authGuard, (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader!.split(' ')[1];
-    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET) as any;
+    const token = authHeader.split(' ')[1];
+    const payload = jwt.verify(token, env.JWT_ACCESS_SECRET);
 
     update('user_sessions', s => s.id === payload.sessionId, s => ({
       ...s,
@@ -272,14 +269,13 @@ router.post('/logout', authGuard, (req: AuthRequest, res) => {
 
     return sendSuccess(res, { message: 'Logged out successfully' });
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError('Logout failed', 500, 'INTERNAL_SERVER_ERROR');
+    next(error);
   }
 });
 
-router.get('/me', authGuard, (req: AuthRequest, res) => {
+router.get('/me', authGuard, (req, res, next) => {
   try {
-    const user = findOne('users', u => u.id === req.user!.id);
+    const user = findOne('users', u => u.id === req.user.id);
     if (!user) {
       throw new AppError('User not found', 404, 'USER_NOT_FOUND');
     }
@@ -297,9 +293,8 @@ router.get('/me', authGuard, (req: AuthRequest, res) => {
       createdAt: user.created_at,
     });
   } catch (error) {
-    if (error instanceof AppError) throw error;
-    throw new AppError('Failed to get user', 500, 'INTERNAL_SERVER_ERROR');
+    next(error);
   }
 });
 
-export default router;
+module.exports = router;
