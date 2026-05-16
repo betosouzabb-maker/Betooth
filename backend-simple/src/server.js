@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { z } = require('zod');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 // ==================== ENV ====================
 const env = {
@@ -388,6 +389,47 @@ adminRouter.post('/make-admin', (req, res, next) => {
   } catch (error) { next(error); }
 });
 
+adminRouter.post('/tracks/upload', authGuard, adminGuard, upload.single('audio'), (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError('No audio file provided', 400, 'NO_FILE');
+    }
+
+    const { title, artist, album, genre } = req.body;
+    if (!title || !artist) {
+      throw new AppError('Title and artist are required', 422, 'VALIDATION_ERROR');
+    }
+
+    const id = uuidv4();
+    const audioUrl = `${env.APP_URL}/uploads/${req.file.filename}`;
+
+    db.tracks.push({
+      id,
+      title,
+      artist,
+      album: album || null,
+      genre: genre || null,
+      duration: 0,
+      cover_url: null,
+      audio_url: audioUrl,
+      file_size: req.file.size,
+      bitrate: null,
+      sample_rate: null,
+      lyrics: null,
+      is_explicit: 0,
+      play_count: 0,
+      download_count: 0,
+      status: 'ACTIVE',
+      uploaded_by: req.user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    saveDb();
+
+    return sendSuccess(res, { id, title, artist, audioUrl, message: 'Track uploaded successfully' }, 201);
+  } catch (error) { next(error); }
+});
+
 adminRouter.get('/stats', authGuard, adminGuard, (req, res) => {
   return sendSuccess(res, {
     totalUsers: db.users.filter(u => u.deleted_at === null).length,
@@ -417,6 +459,35 @@ adminRouter.post('/notifications/:id/read', authGuard, (req, res) => {
   return sendSuccess(res, { message: 'Notification marked as read' });
 });
 
+// ==================== UPLOAD CONFIG ====================
+const UPLOAD_DIR = path.join(DATA_DIR, 'uploads');
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, UPLOAD_DIR);
+  },
+  filename: (req, file, cb) => {
+    const uniqueName = `${uuidv4()}-${file.originalname}`;
+    cb(null, uniqueName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/m4a', 'audio/wav', 'audio/flac', 'audio/ogg', 'audio/x-m4a'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new AppError('Invalid file type. Only audio files allowed.', 400, 'INVALID_FILE_TYPE'), false);
+    }
+  }
+});
+
 // ==================== APP ====================
 const app = express();
 
@@ -426,6 +497,9 @@ app.use(rateLimit({ windowMs: env.RATE_LIMIT_WINDOW_MS, max: env.RATE_LIMIT_MAX_
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.set('trust proxy', 1);
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 initDatabase();
 
