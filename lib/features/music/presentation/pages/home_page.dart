@@ -9,17 +9,35 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BaseScaffold(
-      title: 'Home',
-      actions: [
-        IconButton(
-          onPressed: () => context.push('/player'),
-          icon: const Icon(Icons.open_in_full_rounded),
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0F),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFF0D0D0F),
+        title: const Text('Betooth', style: TextStyle(color: Colors.white)),
+        actions: [
+          IconButton(
+            onPressed: () => context.push('/player'),
+            icon: const Icon(Icons.open_in_full_rounded, color: Colors.white),
+          ),
+        ],
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.headphones_rounded, color: Colors.white, size: 64),
+            SizedBox(height: 16),
+            Text(
+              'Bem-vindo ao Betooth!',
+              style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Seu app de música está pronto.',
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
+          ],
         ),
-      ],
-      body: const SectionPlaceholder(
-        title: 'Descobertas da semana',
-        subtitle: 'Estrutura inicial da home do Betooth.',
       ),
     );
   }
