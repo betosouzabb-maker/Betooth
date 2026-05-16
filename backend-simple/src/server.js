@@ -488,42 +488,126 @@ const upload = multer({
   }
 });
 
-// ==================== UPLOAD ROUTES (simplified - no chunks) ====================
+// ==================== UPLOAD ROUTES (complete implementation) ====================
 const uploadRouter = express.Router();
+
+// Track uploaded files by uploadId
+const uploadSessions = new Map();
 
 uploadRouter.post('/init', authGuard, (req, res, next) => {
   try {
     const { fileName, fileSize, mimeType } = req.body;
     const uploadId = uuidv4();
+    uploadSessions.set(uploadId, {
+      id: uploadId,
+      fileName,
+      fileSize,
+      mimeType,
+      chunks: [],
+      userId: req.user.id,
+      createdAt: new Date().toISOString(),
+    });
     return sendSuccess(res, { uploadId, chunkSize: 1024 * 1024, maxChunkSize: 5 * 1024 * 1024 }, 201);
   } catch (error) { next(error); }
 });
 
 uploadRouter.post('/:uploadId/chunk', authGuard, upload.single('chunk'), (req, res, next) => {
   try {
-    // For simplicity, we just save the file directly on first chunk
     if (!req.file) {
       throw new AppError('No chunk provided', 400, 'NO_FILE');
     }
-    return sendSuccess(res, { received: true, chunkIndex: req.body.chunkIndex || 0 });
+    const session = uploadSessions.get(req.params.uploadId);
+    if (!session) {
+      throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+    }
+    session.chunks.push({
+      path: req.file.path,
+      originalName: req.file.originalname,
+      size: req.file.size,
+    });
+    return sendSuccess(res, { received: true, chunkIndex: parseInt(req.body.chunkIndex || 0) });
   } catch (error) { next(error); }
 });
 
 uploadRouter.post('/:uploadId/complete', authGuard, (req, res, next) => {
   try {
     const { title, artist, album, genre } = req.body;
-    // Find the uploaded file (we need to track it, but for simplicity we'll use a placeholder)
-    // In a real implementation, we'd reassemble chunks here
+    const session = uploadSessions.get(req.params.uploadId);
+    if (!session) {
+      throw new AppError('Upload session not found', 404, 'UPLOAD_NOT_FOUND');
+    }
+
+    // Combine all chunks into final file
+    const finalFileName = `${uuidv4()}-${session.fileName}`;
+    const finalPath = path.join(UPLOAD_DIR, finalFileName);
+    
+    const writeStream = fs.createWriteStream(finalPath);
+    for (const chunk of session.chunks) {
+      const data = fs.readFileSync(chunk.path);
+      writeStream.write(data);
+      fs.unlinkSync(chunk.path); // Delete chunk after combining
+    }
+    writeStream.end();
+
+    // Create track in database
     const id = uuidv4();
-    return sendSuccess(res, { id, title, artist, status: 'PROCESSING', message: 'Upload received, processing...' }, 201);
+    const audioUrl = `${env.APP_URL}/uploads/${finalFileName}`;
+    const stats = fs.statSync(finalPath);
+
+    db.tracks.push({
+      id,
+      title: title || session.fileName,
+      artist: artist || 'Unknown Artist',
+      album: album || null,
+      genre: genre || null,
+      duration: 0,
+      cover_url: null,
+      audio_url: audioUrl,
+      file_size: stats.size,
+      bitrate: null,
+      sample_rate: null,
+      lyrics: null,
+      is_explicit: 0,
+      play_count: 0,
+      download_count: 0,
+      status: 'ACTIVE',
+      uploaded_by: req.user.id,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    saveDb();
+
+    // Clean up session
+    uploadSessions.delete(req.params.uploadId);
+
+    return sendSuccess(res, { 
+      id, 
+      title: title || session.fileName, 
+      artist: artist || 'Unknown Artist', 
+      audioUrl, 
+      status: 'ACTIVE',
+      message: 'Track uploaded successfully' 
+    }, 201);
   } catch (error) { next(error); }
 });
 
 uploadRouter.get('/:uploadId/status', authGuard, (req, res) => {
-  return sendSuccess(res, { status: 'completed', progress: 100 });
+  const session = uploadSessions.get(req.params.uploadId);
+  if (!session) {
+    return sendSuccess(res, { status: 'completed', progress: 100 });
+  }
+  const progress = session.chunks.length > 0 ? Math.min(99, Math.round((session.chunks.reduce((sum, c) => sum + c.size, 0) / session.fileSize) * 100)) : 0;
+  return sendSuccess(res, { status: 'uploading', progress });
 });
 
 uploadRouter.post('/:uploadId/cancel', authGuard, (req, res) => {
+  const session = uploadSessions.get(req.params.uploadId);
+  if (session) {
+    for (const chunk of session.chunks) {
+      if (fs.existsSync(chunk.path)) fs.unlinkSync(chunk.path);
+    }
+    uploadSessions.delete(req.params.uploadId);
+  }
   return sendSuccess(res, { message: 'Upload cancelled' });
 });
 
