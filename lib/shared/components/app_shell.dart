@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/theme/colors.dart';
-import '../widgets/mini_player_widget.dart';
 
 class AppShell extends StatelessWidget {
   const AppShell({
@@ -31,36 +30,18 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(
-            color: AppColors.surface,
-            border: Border(
-              top: BorderSide(
-                color: AppColors.card,
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: AppColors.surface,
+        currentIndex: navigationShell.currentIndex,
+        onTap: _onTap,
+        items: tabs
+            .map(
+              (item) => BottomNavigationBarItem(
+                icon: Icon(item.icon),
+                label: item.label,
               ),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const MiniPlayerWidget(),
-              BottomNavigationBar(
-                currentIndex: navigationShell.currentIndex,
-                onTap: _onTap,
-                items: tabs
-                    .map(
-                      (item) => BottomNavigationBarItem(
-                        icon: Icon(item.icon),
-                        label: item.label,
-                      ),
-                    )
-                    .toList(),
-              ),
-            ],
-          ),
-        ),
+            )
+            .toList(),
       ),
     );
   }
