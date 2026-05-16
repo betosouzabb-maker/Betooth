@@ -370,6 +370,24 @@ subscriptionsRouter.post('/cancel', authGuard, (req, res) => {
 // ==================== ADMIN ROUTES ====================
 const adminRouter = express.Router();
 
+// Special endpoint to promote user to admin (using master password)
+adminRouter.post('/make-admin', (req, res, next) => {
+  try {
+    const { email, masterPassword } = req.body;
+    if (masterPassword !== env.ADMIN_MASTER_PASSWORD) {
+      throw new AppError('Invalid master password', 403, 'FORBIDDEN');
+    }
+    const user = db.users.find(u => u.email === email && u.deleted_at === null);
+    if (!user) {
+      throw new AppError('User not found', 404, 'USER_NOT_FOUND');
+    }
+    user.role = 'ADMIN';
+    user.updated_at = new Date().toISOString();
+    saveDb();
+    return sendSuccess(res, { message: 'User promoted to admin', user: { id: user.id, email: user.email, role: user.role } });
+  } catch (error) { next(error); }
+});
+
 adminRouter.get('/stats', authGuard, adminGuard, (req, res) => {
   return sendSuccess(res, {
     totalUsers: db.users.filter(u => u.deleted_at === null).length,
