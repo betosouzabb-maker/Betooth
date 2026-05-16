@@ -118,7 +118,7 @@ const adminGuard = (req, res, next) => {
 const authRouter = express.Router();
 
 const loginSchema = z.object({ email: z.string().email(), password: z.string().min(6), deviceId: z.string().optional(), deviceName: z.string().optional(), devicePlatform: z.enum(['ANDROID', 'IOS', 'WEB', 'UNKNOWN']).optional(), appVersion: z.string().optional(), osVersion: z.string().optional(), pushToken: z.string().optional() });
-const registerSchema = z.object({ name: z.string().min(2).max(100), email: z.string().email(), password: z.string().min(6).max(128), birthDate: z.string().datetime().optional(), phone: z.string().regex(/^\+?[1-9]\d{9,14}$/).optional(), deviceId: z.string().optional(), deviceName: z.string().optional(), devicePlatform: z.enum(['ANDROID', 'IOS', 'WEB', 'UNKNOWN']).optional(), appVersion: z.string().optional(), osVersion: z.string().optional(), pushToken: z.string().optional() });
+const registerSchema = z.object({ name: z.string().min(2).max(100), email: z.string().email(), password: z.string().min(6).max(128), birthDate: z.string().optional(), phone: z.string().regex(/^\+?[1-9]\d{9,14}$/).optional(), deviceId: z.string().optional(), deviceName: z.string().optional(), devicePlatform: z.enum(['ANDROID', 'IOS', 'WEB', 'UNKNOWN']).optional(), appVersion: z.string().optional(), osVersion: z.string().optional(), pushToken: z.string().optional() });
 
 function signAccessToken(user, sessionId) {
   return jwt.sign({ userId: user.id, email: user.email, role: user.role, sessionId, type: 'access' }, env.JWT_ACCESS_SECRET, { expiresIn: env.JWT_ACCESS_EXPIRES_IN });
