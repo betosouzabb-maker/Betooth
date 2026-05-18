@@ -10,6 +10,7 @@ import '../../domain/entities/upload_entity.dart';
 import '../controllers/upload_controller.dart';
 import '../../../subscription/presentation/controllers/subscription_controller.dart';
 import '../../../subscription/presentation/widgets/vip_paywall_bottom_sheet.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 
 class UploadPage extends ConsumerStatefulWidget {
   const UploadPage({super.key});
@@ -36,6 +37,13 @@ class _UploadPageState extends ConsumerState<UploadPage> {
 
   Future<void> _checkVip() async {
     if (!mounted) return;
+    
+    // Admins bypass VIP check
+    final user = ref.read(authControllerProvider).user;
+    if (user?.role == 'ADMIN') {
+      return;
+    }
+    
     final subController = ref.read(subscriptionControllerProvider.notifier);
     await subController.refresh();
     if (!mounted) return;
