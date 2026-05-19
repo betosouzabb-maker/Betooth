@@ -1,19 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/theme/colors.dart';
-import '../controllers/auth_controller.dart';
 
-class SplashPage extends ConsumerStatefulWidget {
+class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
 
   @override
-  ConsumerState<SplashPage> createState() => _SplashPageState();
+  State<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends ConsumerState<SplashPage> {
+class _SplashPageState extends State<SplashPage> {
   bool _navigated = false;
 
   @override
@@ -23,27 +21,15 @@ class _SplashPageState extends ConsumerState<SplashPage> {
   }
 
   Future<void> _waitAndNavigate() async {
-    // Show splash for at least 1.5s
-    await Future.delayed(const Duration(milliseconds: 1500));
+    // Show splash for 2 seconds
+    await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
-
-    // Wait until auth is resolved (max 5s)
-    for (int i = 0; i < 50; i++) {
-      final status = ref.read(authControllerProvider).status;
-      if (status != AuthStatus.initial) break;
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (!mounted) return;
-    }
 
     if (_navigated || !mounted) return;
     _navigated = true;
 
-    final status = ref.read(authControllerProvider).status;
-    if (status == AuthStatus.authenticated) {
-      context.go('/home');
-    } else {
-      context.go('/login');
-    }
+    // Always go to login after splash
+    context.go('/login');
   }
 
   @override
