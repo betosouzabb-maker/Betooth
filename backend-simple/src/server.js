@@ -59,6 +59,31 @@ function saveDb() {
 }
 
 function initDatabase() {
+  // Create default admin user if not exists
+  const adminExists = db.users.find(u => u.email === 'admin@betooth.com');
+  if (!adminExists) {
+    db.users.push({
+      id: 'admin-default',
+      email: 'admin@betooth.com',
+      username: 'admin',
+      display_name: 'Administrador',
+      password_hash: bcrypt.hashSync('admin123', 12),
+      birth_date: null,
+      phone: null,
+      avatar_url: null,
+      bio: null,
+      role: 'ADMIN',
+      status: 'ACTIVE',
+      is_email_verified: 1,
+      last_login_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      deleted_at: null,
+    });
+    saveDb();
+    console.log('[DB] Default admin user created: admin@betooth.com / admin123');
+  }
+
   if (db.tracks.length === 0) {
     db.tracks = [
       { id: 'track-1', title: 'Bohemian Rhapsody', artist: 'Queen', album: 'A Night at the Opera', genre: 'Rock', duration: 354, cover_url: 'https://i.scdn.co/image/ab67616d0000b273e8b066f70c206551210d902b', audio_url: 'https://example.com/audio1.mp3', status: 'ACTIVE', play_count: 0, download_count: 0, created_at: new Date().toISOString() },
